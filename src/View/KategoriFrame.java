@@ -31,25 +31,39 @@ public class KategoriFrame extends JDialog {
         setLayout(new BorderLayout(8, 8));
 
         // Form atas
-        JPanel pnlForm = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        // --- PERBAIKAN BUG LAYOUT ---
+        JPanel pnlForm = new JPanel(new BorderLayout(5, 5));
         pnlForm.setBorder(BorderFactory.createTitledBorder("Form Kategori"));
-        pnlForm.add(new JLabel("ID:"));
+        
+        // Panel khusus untuk input (baris 1)
+        JPanel pnlInput = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        pnlInput.add(new JLabel("ID:"));
         txtId = new JTextField(4);
         txtId.setEditable(false);
         txtId.setBackground(new Color(0xe8ecf1));
-        pnlForm.add(txtId);
-        pnlForm.add(new JLabel("Nama Kategori:"));
+        pnlInput.add(txtId);
+        
+        pnlInput.add(new JLabel("Nama Kategori:"));
         txtNama = new JTextField(15);
-        pnlForm.add(txtNama);
+        pnlInput.add(txtNama);
 
+        // Panel khusus untuk tombol (baris 2)
+        JPanel pnlTombol = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         btnTambah    = buatTombol("Tambah",    new Color(0x27ae60));
         btnUbah      = buatTombol("Ubah",      new Color(0xf39c12));
         btnHapus     = buatTombol("Hapus",     new Color(0xe74c3c));
         btnBersihkan = buatTombol("Bersihkan", new Color(0x7f8c8d));
-        pnlForm.add(btnTambah);
-        pnlForm.add(btnUbah);
-        pnlForm.add(btnHapus);
-        pnlForm.add(btnBersihkan);
+        
+        pnlTombol.add(btnTambah);
+        pnlTombol.add(btnUbah);
+        pnlTombol.add(btnHapus);
+        pnlTombol.add(btnBersihkan);
+
+        // Gabungkan ke pnlForm
+        pnlForm.add(pnlInput, BorderLayout.NORTH);
+        pnlForm.add(pnlTombol, BorderLayout.CENTER);
+        
+        // Masukkan ke frame utama
         add(pnlForm, BorderLayout.NORTH);
 
         // Tabel
@@ -80,6 +94,9 @@ public class KategoriFrame extends JDialog {
             }
         });
         btnUbah.addActionListener(e -> {
+            if(txtId.getText().isEmpty()){
+                JOptionPane.showMessageDialog(this,"Pilih kategori dari tabel terlebih dahulu", "PERINGATAN!", JOptionPane.WARNING_MESSAGE);
+            }
             try {
                 controller.ubahKategori(Integer.parseInt(txtId.getText()), txtNama.getText());
                 JOptionPane.showMessageDialog(this, "Kategori diubah!");

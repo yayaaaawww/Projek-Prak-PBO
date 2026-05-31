@@ -6,6 +6,7 @@ package Main;
 import View.LoginFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import com.formdev.flatlaf.FlatLightLaf;
 /**
  *
  * @author LENOVO
@@ -14,14 +15,9 @@ import javax.swing.UIManager;
 public class Main {
     public static void main(String[] args) {
         try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
+            UIManager.setLookAndFeel(new FlatLightLaf());
         } catch (Exception e) {
-            // fallback default
+            System.err.println("Gagal Mengambil FlatLaf" + e.getMessage());
         }
         SwingUtilities.invokeLater(() -> new LoginFrame());
     }

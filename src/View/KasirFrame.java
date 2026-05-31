@@ -242,7 +242,7 @@ public class KasirFrame extends JFrame {
         try {
             double bayar = Double.parseDouble(inputStr.trim().replace(",", "").replace(".", ""));
             if (bayar < total) {
-                JOptionPane.showMessageDialog(this, "Uang bayar kurang!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Nominal uang kurang!", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 

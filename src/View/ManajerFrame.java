@@ -310,7 +310,8 @@ public class ManajerFrame extends JFrame {
         txtNama.setText(modelProduk.getValueAt(baris, 1).toString());
         Produk p = produkCtrl.getProdukById(Integer.parseInt(txtId.getText()));
         if (p != null) {
-            txtHarga.setText(String.valueOf((int) p.getHarga()));
+            // Hapus (int) agar desimal tidak hilang
+            txtHarga.setText(String.valueOf(p.getHarga()));
             txtStok.setText(String.valueOf(p.getStok()));
             for (int i = 0; i < cmbKategori.getItemCount(); i++) {
                 if (cmbKategori.getItemAt(i).getIdKategori() == p.getIdKategori()) {

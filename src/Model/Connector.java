@@ -17,7 +17,7 @@ import java.sql.SQLException;
 public class Connector {
 
     private static final String HOST     = "localhost";
-    private static final String PORT     = "3306";
+    private static final String PORT     = "3307";
     private static final String DATABASE = "manajemen_supermarket";
     private static final String USER     = "root";
     private static final String PASSWORD = ""; 

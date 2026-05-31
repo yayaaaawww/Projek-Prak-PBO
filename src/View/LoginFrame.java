@@ -26,7 +26,7 @@ public class LoginFrame extends JFrame {
         authController = new AuthController();
 
         setTitle("Login - Manajemen Supermarket");
-        setSize(400, 320);
+        setSize(400, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
