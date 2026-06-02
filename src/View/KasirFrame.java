@@ -115,8 +115,26 @@ public class KasirFrame extends JFrame {
 
         btnCari.addActionListener(e -> {
             modelProduk.setRowCount(0);
-            for (Produk p : produkCtrl.cariProduk(txtCari.getText()))
-                tambahBarisProduk(p);
+            String keyword = txtCari.getText();
+            
+            SwingWorker<List<Produk>, Void> workerCari = new SwingWorker<List<Produk>, Void>() {
+                @Override
+                protected List<Produk> doInBackground() throws Exception {
+                    return produkCtrl.cariProduk(keyword);
+                }
+                @Override
+                protected void done() {
+                    try {
+                        List<Produk> hasilCari = get();
+                        for (Produk p : hasilCari) {
+                            tambahBarisProduk(p);
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(KasirFrame.this, "Gagal mencari produk!", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            workerCari.execute();
         });
         btnRefresh.addActionListener(e -> muatProduk());
         btnTambahKeranjang.addActionListener(e -> {
@@ -192,9 +210,32 @@ public class KasirFrame extends JFrame {
 
     // ===================== LOGIKA =====================
     private void muatProduk() {
-        modelProduk.setRowCount(0);
-        for (Produk p : produkCtrl.semuaProduk())
-            tambahBarisProduk(p);
+        // Kosongkan tabel dan beri indikator (opsional)
+        modelProduk.setRowCount(0); 
+        
+        // Menggunakan SwingWorker untuk menjalankan task di background
+        SwingWorker<List<Produk>, Void> worker = new SwingWorker<List<Produk>, Void>() {
+            @Override
+            protected List<Produk> doInBackground() throws Exception {
+                // Berjalan di Background Thread (Tidak membuat UI Freeze)
+                return produkCtrl.semuaProduk(); 
+            }
+
+            
+            @Override
+            protected void done() {
+                // Berjalan kembali di UI Thread (Aman untuk update komponen Swing)
+                try {
+                    List<Produk> daftarProduk = get(); // Ambil hasil dari doInBackground
+                    for (Produk p : daftarProduk) {
+                        tambahBarisProduk(p);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(KasirFrame.this, "Gagal memuat produk: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute(); // Eksekusi thread
     }
 
     private void tambahBarisProduk(Produk p) {
@@ -233,7 +274,7 @@ public class KasirFrame extends JFrame {
 
         double total = transaksiCtrl.hitungTotal(keranjang);
 
-        // Dialog input uang tunai
+        // Dialog input uang tunai (dijalankan di UI thread seperti biasa)
         String inputStr = JOptionPane.showInputDialog(this,
             "Total: " + FMT.format(total) + "\nMasukkan uang bayar (Rp):",
             "Proses Pembayaran", JOptionPane.PLAIN_MESSAGE);
@@ -246,40 +287,61 @@ public class KasirFrame extends JFrame {
                 return;
             }
 
-            int idTrx = transaksiCtrl.prosesTransaksi(keranjang);
-            double kembalian = bayar - total;
+            // --- MULAI MULTITHREADING ---
+            lblTotal.setText("Memproses..."); // Indikator UI
+            
+            SwingWorker<Integer, Void> workerBayar = new SwingWorker<Integer, Void>() {
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    // Proses simpan ke database di background thread
+                    return transaksiCtrl.prosesTransaksi(keranjang);
+                }
 
-            // Struk
-            StringBuilder struk = new StringBuilder();
-            struk.append("===== STRUK BELANJA =====\n");
-            struk.append("ID Transaksi : #").append(idTrx).append("\n");
-            struk.append("Kasir        : ").append(user.getNamaLengkap()).append("\n");
-            struk.append("-------------------------\n");
-            for (DetailTransaksi d : keranjang) {
-                struk.append(String.format("%-18s x%d\n  %s\n", d.getNamaProduk(), d.getJumlah(), FMT.format(d.getSubtotal())));
-            }
-            struk.append("-------------------------\n");
-            struk.append("Total      : ").append(FMT.format(total)).append("\n");
-            struk.append("Bayar      : ").append(FMT.format(bayar)).append("\n");
-            struk.append("Kembalian  : ").append(FMT.format(kembalian)).append("\n");
-            struk.append("=========================\n");
-            struk.append("     Terima kasih!       ");
+                @Override
+                protected void done() {
+                    try {
+                        // Ambil ID Transaksi dari hasil doInBackground
+                        int idTrx = get(); 
+                        double kembalian = bayar - total;
 
-            JTextArea txStruk = new JTextArea(struk.toString());
-            txStruk.setFont(new Font("Monospaced", Font.PLAIN, 12));
-            txStruk.setEditable(false);
-            JOptionPane.showMessageDialog(this, new JScrollPane(txStruk), "Struk Belanja", JOptionPane.INFORMATION_MESSAGE);
+                        // Pembuatan dan penayangan struk
+                        StringBuilder struk = new StringBuilder();
+                        struk.append("===== STRUK BELANJA =====\n");
+                        struk.append("ID Transaksi : #").append(idTrx).append("\n");
+                        struk.append("Kasir        : ").append(user.getNamaLengkap()).append("\n");
+                        struk.append("-------------------------\n");
+                        for (DetailTransaksi d : keranjang) {
+                            struk.append(String.format("%-18s x%d\n  %s\n", d.getNamaProduk(), d.getJumlah(), FMT.format(d.getSubtotal())));
+                        }
+                        struk.append("-------------------------\n");
+                        struk.append("Total      : ").append(FMT.format(total)).append("\n");
+                        struk.append("Bayar      : ").append(FMT.format(bayar)).append("\n");
+                        struk.append("Kembalian  : ").append(FMT.format(kembalian)).append("\n");
+                        struk.append("=========================\n");
+                        struk.append("     Terima kasih!       ");
 
-            // Reset keranjang & refresh stok
-            keranjang.clear();
-            modelKeranjang.setRowCount(0);
-            updateTotal();
-            muatProduk();
+                        JTextArea txStruk = new JTextArea(struk.toString());
+                        txStruk.setFont(new Font("Monospaced", Font.PLAIN, 12));
+                        txStruk.setEditable(false);
+                        JOptionPane.showMessageDialog(KasirFrame.this, new JScrollPane(txStruk), "Struk Belanja", JOptionPane.INFORMATION_MESSAGE);
+
+                        // Reset keranjang & refresh stok
+                        keranjang.clear();
+                        modelKeranjang.setRowCount(0);
+                        updateTotal();
+                        muatProduk(); // Memanggil muatProduk yang sekarang sudah menggunakan SwingWorker
+
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(KasirFrame.this, "Gagal: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        updateTotal(); // kembalikan teks total jika gagal
+                    }
+                }
+            };
+            
+            workerBayar.execute(); // Jalankan proses pembayaran di latar belakang
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Input uang tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Gagal: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
